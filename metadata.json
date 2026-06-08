@@ -1,0 +1,6 @@
+{
+  "name": "Aryan Mali Portfolio",
+  "description": "Portfolio website for Aryan Mali, an aspiring AI Developer.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
