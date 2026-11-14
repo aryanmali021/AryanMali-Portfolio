@@ -14,6 +14,18 @@ async function startServer() {
 
   app.use(express.json());
 
+  app.get("/robots.txt", (_req, res) => {
+    res.type("text/plain").send(
+      "User-agent: *\nAllow: /\n\nSitemap: https://aryanmali-portfolio.onrender.com/sitemap.xml\n"
+    );
+  });
+
+  app.get("/sitemap.xml", (_req, res) => {
+    res.type("application/xml").send(
+      `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>https://aryanmali-portfolio.onrender.com/</loc>\n    <lastmod>2026-11-14</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>1.0</priority>\n  </url>\n</urlset>\n`
+    );
+  });
+
   // API endpoints
   app.post("/api/chat", async (req, res) => {
     try {

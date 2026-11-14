@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://aryanmali-portfolio.onrender.com/sitemap.xml
