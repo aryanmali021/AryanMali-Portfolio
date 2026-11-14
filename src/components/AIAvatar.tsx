@@ -114,10 +114,10 @@ export default function AIAvatar() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-2 right-2 sm:bottom-6 sm:right-6 z-[100] w-[calc(100vw-1rem)] sm:w-[350px] max-h-[calc(100vh-2rem)] sm:max-h-[85vh] shadow-2xl rounded-2xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col"
+            className="fixed bottom-2 right-2 sm:bottom-6 sm:right-6 z-[100] w-[calc(100vw-1rem)] sm:w-[350px] h-[520px] max-h-[calc(100dvh-1.5rem)] sm:max-h-[85dvh] shadow-2xl rounded-2xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white">
+            <div className="shrink-0 flex items-center justify-between p-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-white/20 rounded-full">
                   <Bot className="w-5 h-5" />
@@ -148,7 +148,7 @@ export default function AIAvatar() {
             </div>
 
             {/* Chat Area */}
-            <div className="flex-1 p-4 min-h-[350px] overflow-y-auto flex flex-col gap-3 bg-slate-50 dark:bg-slate-900/50">
+            <div className="flex-1 min-h-0 p-4 overflow-y-auto overscroll-contain flex flex-col gap-3 bg-slate-50 dark:bg-slate-900/50">
               {messages.map((msg) => (
                 <div 
                   key={msg.id} 
@@ -177,7 +177,7 @@ export default function AIAvatar() {
             </div>
 
             {/* Input Area */}
-            <form onSubmit={handleSendMessage} className="p-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
+            <form onSubmit={handleSendMessage} className="shrink-0 p-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-2 relative">
                 <input
                   type="text"

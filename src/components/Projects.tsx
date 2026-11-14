@@ -2,7 +2,16 @@ import { ExternalLink, Github, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 
-const defaultProjects = [
+interface ProjectItem {
+  title: string;
+  description: string;
+  tech: string[];
+  metrics: string;
+  github: string;
+  liveUrl?: string;
+}
+
+const defaultProjects: ProjectItem[] = [
   {
     title: "Tech Stack Recommender",
     description: "An AI-powered application to recommend the best tech stack for your next project based on specific requirements.",
@@ -47,8 +56,141 @@ const defaultProjects = [
   }
 ];
 
+const IGNORED_URL_HOSTS = [
+  'github.com',
+  'raw.githubusercontent.com',
+  'user-images.githubusercontent.com',
+  'shields.io',
+  'img.shields.io',
+  'badge.fury.io',
+  'localhost',
+  '127.0.0.1',
+  'example.com',
+  'linkedin.com',
+  'twitter.com',
+  'x.com',
+  'youtube.com',
+  'youtu.be',
+  'kaggle.com',
+  'opensource.org',
+];
+
+const DEPLOYMENT_HOST_REGEX =
+  /\.(?:vercel\.app|netlify\.app|onrender\.com|github\.io|web\.app|firebaseapp\.com|herokuapp\.com|railway\.app|fly\.dev|streamlit\.app|pages\.dev|surge\.sh)$/i;
+
+const sanitizeCandidateUrl = (rawUrl: string): string | null => {
+  const cleaned = rawUrl.trim().replace(/[),.;'">\]]+$/, '');
+  try {
+    const parsed = new URL(cleaned);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+    const host = parsed.hostname.toLowerCase();
+    if (IGNORED_URL_HOSTS.some((blocked) => host === blocked || host.endsWith(`.${blocked}`))) {
+      return null;
+    }
+    if (/\.(?:png|jpe?g|gif|svg|webp|ico|pdf|mp4|zip)$/i.test(parsed.pathname)) {
+      return null;
+    }
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+};
+
+const extractLiveUrlFromReadme = (readme: string): string | undefined => {
+  if (!readme) return undefined;
+
+  // 1. Markdown links with live/demo labels (skip image badge wrappers)
+  const mdLinkRegex = /(?<!!)\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gi;
+  for (const match of readme.matchAll(mdLinkRegex)) {
+    const label = match[1];
+    const url = sanitizeCandidateUrl(match[2]);
+    if (
+      url &&
+      /\b(live|demo|preview|visit|view\s*live|view\s*site|website|deployed|web\s*app|try\s*it|app)\b/i.test(
+        label
+      )
+    ) {
+      return url;
+    }
+  }
+
+  // 2. HTML anchor links with live/demo labels
+  const htmlLinkRegex = /<a[^>]+href=["'](https?:\/\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  for (const match of readme.matchAll(htmlLinkRegex)) {
+    const url = sanitizeCandidateUrl(match[1]);
+    const label = match[2].replace(/<[^>]+>/g, '');
+    if (
+      url &&
+      /\b(live|demo|preview|visit|view\s*live|view\s*site|website|deployed|web\s*app|try\s*it|app)\b/i.test(
+        label
+      )
+    ) {
+      return url;
+    }
+  }
+
+  // 3. Lines explicitly labeled Live / Demo / Website / Deployed followed by a URL
+  const lines = readme.split(/\r?\n/);
+  for (const line of lines) {
+    if (
+      /\b(live\s*(?:demo|link|url|site|preview|app)?|demo\s*(?:link|url)?|deployed\s*(?:at|link|url)?|website|view\s*live|visit\s*(?:site|app|here)?)\b/i.test(
+        line
+      )
+    ) {
+      const urls = line.match(/https?:\/\/[^\s)>"'\]]+/gi);
+      if (urls) {
+        for (const candidate of urls) {
+          const valid = sanitizeCandidateUrl(candidate);
+          if (valid) return valid;
+        }
+      }
+    }
+  }
+
+  // 4. Known hosting platform URLs anywhere in README (e.g. vercel.app, onrender.com, github.io)
+  const allUrls = readme.match(/https?:\/\/[^\s)>"'\]]+/gi) || [];
+  for (const candidate of allUrls) {
+    const valid = sanitizeCandidateUrl(candidate);
+    if (!valid) continue;
+    try {
+      const host = new URL(valid).hostname.toLowerCase();
+      if (
+        DEPLOYMENT_HOST_REGEX.test(host) ||
+        valid.toLowerCase().includes('huggingface.co/spaces/')
+      ) {
+        return valid;
+      }
+    } catch {
+      // Ignore invalid URL
+    }
+  }
+
+  return undefined;
+};
+
+const fetchRepoReadme = async (fullName: string, defaultBranch: string): Promise<string> => {
+  const branches = Array.from(new Set([defaultBranch || 'main', 'main', 'master']));
+  const filenames = ['README.md', 'readme.md'];
+
+  for (const branch of branches) {
+    for (const filename of filenames) {
+      try {
+        const res = await fetch(
+          `https://raw.githubusercontent.com/${fullName}/${branch}/${filename}`
+        );
+        if (res.ok) {
+          return await res.text();
+        }
+      } catch {
+        // Try next candidate
+      }
+    }
+  }
+  return '';
+};
+
 export default function Projects() {
-  const [projectsToDisplay, setProjectsToDisplay] = useState(defaultProjects);
+  const [projectsToDisplay, setProjectsToDisplay] = useState<ProjectItem[]>(defaultProjects);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -57,16 +199,33 @@ export default function Projects() {
          if (!res.ok) throw new Error("Failed to fetch from Github");
          return res.json();
       })
-      .then((data: any[]) => {
-        if(Array.isArray(data) && data.length > 0) {
-           const formatted = data.map(repo => ({
-             title: repo.name.replace(/[-_]/g, ' '),
-             description: repo.description || "A dynamic project fetched from my GitHub.",
-             tech: repo.topics && repo.topics.length > 0 ? repo.topics.slice(0, 3) : (repo.language ? [repo.language] : []),
-             metrics: "GitHub Project",
-             github: repo.html_url
-           }));
-           setProjectsToDisplay(formatted);
+      .then(async (data: any[]) => {
+        if (Array.isArray(data) && data.length > 0) {
+          const formatted = await Promise.all(
+            data.map(async (repo): Promise<ProjectItem> => {
+              const readmeText = await fetchRepoReadme(
+                repo.full_name,
+                repo.default_branch || 'main'
+              );
+              const readmeLiveUrl = extractLiveUrlFromReadme(readmeText);
+              const homepageUrl = repo.homepage ? sanitizeCandidateUrl(repo.homepage) : null;
+
+              return {
+                title: repo.name.replace(/[-_]/g, ' '),
+                description: repo.description || "A dynamic project fetched from my GitHub.",
+                tech:
+                  repo.topics && repo.topics.length > 0
+                    ? repo.topics.slice(0, 3)
+                    : repo.language
+                    ? [repo.language]
+                    : [],
+                metrics: "GitHub Project",
+                github: repo.html_url,
+                liveUrl: readmeLiveUrl || homepageUrl || undefined,
+              };
+            })
+          );
+          setProjectsToDisplay(formatted);
         }
         setIsLoading(false);
       })
@@ -136,15 +295,25 @@ export default function Projects() {
                   ))}
                 </div>
 
-                <div className="flex mt-auto">
+                <div className="flex items-center gap-2.5 mt-auto">
                   <a 
                     href={project.github}
                     target="_blank"
                     rel="noreferrer"
-                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r hover:from-cyan-500 hover:to-blue-600 dark:hover:from-cyan-600 dark:hover:to-blue-700 hover:text-white bg-black/5 dark:bg-white/5 text-slate-900 dark:text-white py-2 rounded-lg text-sm font-medium transition-all duration-300 border border-black/10 dark:border-white/10 hover:border-transparent group/btn"
+                    className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r hover:from-cyan-500 hover:to-blue-600 dark:hover:from-cyan-600 dark:hover:to-blue-700 hover:text-white bg-black/5 dark:bg-white/5 text-slate-900 dark:text-white py-2 px-3 rounded-lg text-sm font-medium transition-all duration-300 border border-black/10 dark:border-white/10 hover:border-transparent group/btn whitespace-nowrap"
                   >
-                    <Github className="w-4 h-4 group-hover/btn:scale-110 transition-transform"/> Repository
+                    <Github className="w-4 h-4 shrink-0 group-hover/btn:scale-110 transition-transform"/> Repository
                   </a>
+                  {project.liveUrl && (
+                    <a
+                      href={project.liveUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white py-2 px-3 rounded-lg text-sm font-medium transition-all duration-300 shadow-sm hover:shadow-cyan-500/25 group/live whitespace-nowrap"
+                    >
+                      <ExternalLink className="w-4 h-4 shrink-0 group-hover/live:translate-x-0.5 group-hover/live:-translate-y-0.5 transition-transform" /> View Live
+                    </a>
+                  )}
                 </div>
               </div>
             </motion.div>

@@ -1,23 +1,25 @@
-import { Code2, Bot, Server, BrainCircuit, Terminal, Database, Globe, Cpu, Cloud, Layout, Github, Figma } from 'lucide-react';
+import { Code2, Bot, Server, BrainCircuit, Terminal, Database, Globe, Cpu, Cloud, Layout, Github, Figma, Sigma, Table } from 'lucide-react';
 import { motion } from 'motion/react';
 
 const skills = [
-  { category: "Programming", icon: <Code2 />, items: [{ name: "Python", level: 55 }, { name: "JavaScript (Basic)", level: 45 }] },
-  { category: "AI/ML", icon: <Bot />, items: [{ name: "Machine Learning Fundamentals", level: 50 }, { name: "LLMs", level: 60 }, { name: "Chatbot Development", level: 55 }, { name: "Prompt Engineering", level: 48 }] },
-  { category: "Tools & Tech", icon: <Server />, items: [{ name: "Git", level: 45 }, { name: "GitHub", level: 50 }, { name: "VS Code", level: 60 }, { name: "Linux Basics", level: 40 }] },
+  { category: "Programming", icon: <Code2 />, items: [{ name: "Python", level: 55 }, { name: "NumPy", level: 55 }, { name: "Pandas", level: 40 }, { name: "JavaScript (Basic)", level: 45 }] },
+  { category: "AI/ML", icon: <Bot />, items: [{ name: "Machine Learning Fundamentals", level: 50 }, { name: "LLMs", level: 30 }, { name: "Chatbot Development", level: 55 }, { name: "Prompt Engineering", level: 60 }] },
+  { category: "Tools & Tech", icon: <Server />, items: [{ name: "Git", level: 30 }, { name: "GitHub", level: 70 }, { name: "VS Code", level: 75 }, { name: "Linux Basics", level: 40 }] },
   { category: "Core Capabilities", icon: <BrainCircuit />, items: [{ name: "Problem Solving", level: 55 }, { name: "Logical Thinking", level: 60 }, { name: "System Automation", level: 45 }] },
 ];
 
 const floatingBadges = [
-  { name: 'React', icon: <Globe className="w-5 h-5 text-blue-500" />, color: 'shadow-blue-500/20', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
-  { name: 'Node.js', icon: <Server className="w-5 h-5 text-green-500" />, color: 'shadow-green-500/20', bg: 'bg-green-500/10', border: 'border-green-500/20' },
   { name: 'Python', icon: <Terminal className="w-5 h-5 text-yellow-500" />, color: 'shadow-yellow-500/20', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20' },
+  { name: 'NumPy', icon: <Sigma className="w-5 h-5 text-sky-500" />, color: 'shadow-sky-500/20', bg: 'bg-sky-500/10', border: 'border-sky-500/20' },
+  { name: 'Pandas', icon: <Table className="w-5 h-5 text-violet-500" />, color: 'shadow-violet-500/20', bg: 'bg-violet-500/10', border: 'border-violet-500/20' },
   { name: 'SQL', icon: <Database className="w-5 h-5 text-indigo-500" />, color: 'shadow-indigo-500/20', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20' },
   { name: 'AI Models', icon: <Cpu className="w-5 h-5 text-purple-500" />, color: 'shadow-purple-500/20', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
   { name: 'Docker', icon: <Cloud className="w-5 h-5 text-sky-500" />, color: 'shadow-sky-500/20', bg: 'bg-sky-500/10', border: 'border-sky-500/20' },
   { name: 'Tailwind', icon: <Layout className="w-5 h-5 text-cyan-500" />, color: 'shadow-cyan-500/20', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' },
   { name: 'GitHub', icon: <Github className="w-5 h-5 text-slate-800 dark:text-white" />, color: 'shadow-slate-500/20', bg: 'bg-slate-500/10', border: 'border-slate-500/20' },
   { name: 'Figma', icon: <Figma className="w-5 h-5 text-pink-500" />, color: 'shadow-pink-500/20', bg: 'bg-pink-500/10', border: 'border-pink-500/20' },
+  { name: 'React', icon: <Globe className="w-5 h-5 text-blue-500" />, color: 'shadow-blue-500/20', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+  { name: 'Node.js', icon: <Server className="w-5 h-5 text-green-500" />, color: 'shadow-green-500/20', bg: 'bg-green-500/10', border: 'border-green-500/20' },
 ];
 
 export default function Skills() {

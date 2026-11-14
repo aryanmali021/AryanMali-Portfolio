@@ -1,7 +1,8 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { FileText, X } from 'lucide-react';
+import { Download, FileText, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { jsPDF } from 'jspdf';
 
 interface ResumeModalProps {
   isOpen: boolean;
@@ -25,6 +26,277 @@ export default function ResumeModal({ isOpen, onClose }: ResumeModalProps) {
       document.body.style.overflow = 'unset';
     };
   }, [isOpen]);
+
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margin = 15;
+    const contentWidth = pageWidth - margin * 2;
+    let y = 16;
+
+    const ensureSpace = (needed: number) => {
+      if (y + needed > pageHeight - 15) {
+        doc.addPage();
+        y = 16;
+      }
+    };
+
+    const addSectionHeading = (title: string) => {
+      ensureSpace(11);
+      y += 2;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(15, 23, 42);
+      doc.text(title.toUpperCase(), margin, y);
+      y += 1.8;
+      doc.setDrawColor(203, 213, 225);
+      doc.setLineWidth(0.3);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 4.8;
+    };
+
+    const addParagraph = (text: string, size = 9.5, lineHeight = 4.4) => {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(size);
+      doc.setTextColor(51, 65, 85);
+      const lines = doc.splitTextToSize(text, contentWidth);
+      lines.forEach((line: string) => {
+        ensureSpace(lineHeight);
+        doc.text(line, margin, y);
+        y += lineHeight;
+      });
+    };
+
+    const addBullet = (text: string, boldPrefix?: string) => {
+      const bulletX = margin + 2.5;
+      const textX = margin + 6;
+      const maxW = contentWidth - 6;
+      const lineHeight = 4.3;
+
+      doc.setFontSize(9.2);
+      doc.setTextColor(51, 65, 85);
+
+      if (boldPrefix) {
+        const fullText = `${boldPrefix} ${text}`;
+        const lines: string[] = doc.splitTextToSize(fullText, maxW);
+        ensureSpace(lines.length * lineHeight);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(15, 23, 42);
+        doc.text('•', bulletX, y);
+
+        lines.forEach((line, idx) => {
+          if (idx === 0 && line.startsWith(boldPrefix)) {
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(15, 23, 42);
+            doc.text(boldPrefix, textX, y);
+            const prefixW = doc.getTextWidth(boldPrefix);
+            const rest = line.slice(boldPrefix.length);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(51, 65, 85);
+            doc.text(rest, textX + prefixW, y);
+          } else {
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(51, 65, 85);
+            doc.text(line, textX, y);
+          }
+          y += lineHeight;
+        });
+      } else {
+        const lines: string[] = doc.splitTextToSize(text, maxW);
+        ensureSpace(lines.length * lineHeight);
+        doc.setFont('helvetica', 'normal');
+        doc.text('•', bulletX, y);
+        lines.forEach((line) => {
+          doc.text(line, textX, y);
+          y += lineHeight;
+        });
+      }
+      y += 0.8;
+    };
+
+    // Header
+    doc.setFont('times', 'bold');
+    doc.setFontSize(21);
+    doc.setTextColor(15, 23, 42);
+    doc.text('ARYAN MALI', pageWidth / 2, y, { align: 'center' });
+    y += 6;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(8, 145, 178);
+    doc.text('B.Tech in Artificial Intelligence & Data Science | Aspiring AI Developer', pageWidth / 2, y, { align: 'center' });
+    y += 5;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.8);
+    doc.setTextColor(71, 85, 105);
+    doc.text(
+      'aryanmali021@gmail.com  •  linkedin.com/in/aryan-mali-a14015374  •  github.com/aryanmali021',
+      pageWidth / 2,
+      y,
+      { align: 'center' }
+    );
+    y += 4;
+
+    doc.setDrawColor(30, 41, 59);
+    doc.setLineWidth(0.6);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 5;
+
+    // Professional Summary
+    addSectionHeading('Professional Summary');
+    addParagraph(
+      'Highly motivated 3rd-year B.Tech student specializing in Artificial Intelligence and Data Science. Proven track record in building AI-driven web applications, predictive classification models, automated chatbots, and integrated hardware systems. Demonstrates strong technical fundamentals alongside analytical problem-solving to design and deliver high impact engineering solutions. Seeking an impactful internship to leverage expertise in machine learning, system automation, and full-stack logic to drive real-world technical advancements.'
+    );
+    y += 2;
+
+    // Education
+    addSectionHeading('Education');
+    const eduItems = [
+      {
+        title: 'B.Tech in Artificial Intelligence & Data Science',
+        right: 'Pursuing (3rd Year)',
+        sub: 'Rajasthan Technical University (RTU) | CGPA: 8.24',
+      },
+      {
+        title: 'Class 12 (Rajasthan Board)',
+        right: 'Percentage: 82%',
+        sub: 'Specialization in Mathematics (Score: 92/100)',
+      },
+      {
+        title: 'Class 10 (Central Board)',
+        right: 'Percentage: 70%',
+      },
+    ];
+
+    eduItems.forEach((item) => {
+      ensureSpace(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text(item.title, margin, y);
+      doc.text(item.right, pageWidth - margin, y, { align: 'right' });
+      y += 4.3;
+      if (item.sub) {
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(9);
+        doc.setTextColor(71, 85, 105);
+        doc.text(item.sub, margin, y);
+        y += 4.5;
+      }
+      y += 1.2;
+    });
+
+    // Technical Skills
+    addSectionHeading('Technical Skills');
+    const skillRows = [
+      ['Programming:', 'Python, HTML, C++, JavaScript (Basic), Java'],
+      ['AI / ML:', 'Machine Learning Fundamentals, LLMs, Chatbot Development, Predictive Modeling, Pattern Classification'],
+      ['Tools & Tech:', 'Git, GitHub, VS Code, Linux Basics, API Integration, NumPy, Pandas'],
+      ['Core Skills:', 'Problem Solving, Logical Thinking, System Automation, Object-Oriented Programming (OOP)'],
+    ];
+    const labelColW = 30;
+    skillRows.forEach(([label, val]) => {
+      const valLines: string[] = doc.splitTextToSize(val, contentWidth - labelColW);
+      ensureSpace(valLines.length * 4.3 + 1.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.3);
+      doc.setTextColor(15, 23, 42);
+      doc.text(label, margin, y);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(51, 65, 85);
+      valLines.forEach((line, idx) => {
+        doc.text(line, margin + labelColW, y + idx * 4.3);
+      });
+      y += valLines.length * 4.3 + 1.4;
+    });
+    y += 1;
+
+    // Projects
+    addSectionHeading('Projects');
+    const projects = [
+      {
+        title: 'Tech Stack Recommender',
+        hasLink: true,
+        bullets: [
+          'Engineered a smart personalized recommendation framework engineered to suggest optimal frameworks, programming languages, and toolsets based on project constraints and specific domains.',
+          'Implemented matching logic rules using specialized algorithmic heuristics to align developer requirements directly with industry-standard technological stacks.',
+        ],
+      },
+      {
+        title: 'Iris Classification Model',
+        hasLink: true,
+        bullets: [
+          'Developed and validated a highly accurate predictive classification model to segment and categorize Iris plant varieties based on descriptive morphological feature matrices.',
+          'Utilized robust Python machine learning libraries to handle structured datasets, perform exploratory data analysis (EDA), and evaluate accuracy metrics.',
+        ],
+      },
+      {
+        title: 'Clone.AI Chatbot',
+        hasLink: false,
+        bullets: [
+          'Engineered a highly responsive, context-aware chatbot solution utilizing advanced backend API integrations for real-time natural language query resolution.',
+          'Architected a secure data-handling flow featuring persistent conversational histories and rigorous authentication layers to significantly boost context-matching precision.',
+        ],
+      },
+      {
+        title: 'AI Image Detector',
+        hasLink: false,
+        bullets: [
+          'Designed and deployed a computer vision classification pipeline using custom machine learning algorithms to systematically identify and classify computer-generated artificial images versus genuine photographs.',
+        ],
+      },
+      {
+        title: 'Finance Management System',
+        hasLink: false,
+        bullets: [
+          'Developed a comprehensive, data-driven financial application built to securely track operational expenses, formulate budget allocations, and output analytical indicators for optimized personal asset allocation.',
+        ],
+      },
+      {
+        title: 'Smart Irrigation System (Hardware Automation)',
+        hasLink: false,
+        bullets: [
+          'Built an automated, IoT-inspired micro-controller hardware framework leveraging embedded sensor nodes to track soil conditions and dynamically regulate efficient, conservation-oriented water distribution workflows.',
+        ],
+      },
+    ];
+
+    projects.forEach((proj) => {
+      ensureSpace(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text(proj.title, margin, y);
+      if (proj.hasLink) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(8, 145, 178);
+        doc.textWithLink('[GitHub Link]', pageWidth - margin, y, {
+          align: 'right',
+          url: 'https://github.com/aryanmali021',
+        });
+      }
+      y += 4.5;
+      proj.bullets.forEach((b) => addBullet(b));
+      y += 1.5;
+    });
+
+    // Achievements & Extra-Curriculars
+    addSectionHeading('Achievements & Extra-Curriculars');
+    addBullet(
+      'Competed actively in high-pressure technical sprints including Amihack 1.0, Hack Arya Verse 2.0, Projectathon, Robo Race, and Robo Soccer Competitions to prototype novel cross-functional architectures.',
+      'Hackathons & Innovation:'
+    );
+    addBullet(
+      'Authored, tested, and publicly published multiple AI-focused software libraries, custom classification scripts, and hardware configuration repositories on GitHub to support collaborative peer development.',
+      'Open Source Contribution:'
+    );
+
+    doc.save('Aryan_Mali_Resume.pdf');
+  };
 
   const modalContent = (
     <AnimatePresence>
@@ -52,6 +324,14 @@ export default function ResumeModal({ isOpen, onClose }: ResumeModalProps) {
                 <span>Aryan Mali - Resume</span>
               </div>
               <div className="flex items-center gap-2">
+                <button
+                  onClick={handleDownloadPDF}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg transition-colors shadow-sm cursor-pointer"
+                  title="Download Resume as PDF"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download PDF</span>
+                </button>
                 <button 
                   onClick={onClose}
                   className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg transition-colors"
@@ -95,7 +375,7 @@ export default function ResumeModal({ isOpen, onClose }: ResumeModalProps) {
                       <span>B.Tech in Artificial Intelligence & Data Science</span>
                       <span>Pursuing (3rd Year)</span>
                     </div>
-                    <div className="text-slate-600 dark:text-slate-400 italic">Rajasthan Technical University (RTU) | CGPA: 8.24 | 3rd Semester SGPA: 8.6</div>
+                    <div className="text-slate-600 dark:text-slate-400 italic">Rajasthan Technical University (RTU) | CGPA: 8.24</div>
                   </div>
 
                   <div>
@@ -125,7 +405,7 @@ export default function ResumeModal({ isOpen, onClose }: ResumeModalProps) {
                     <span>Machine Learning Fundamentals, LLMs, Chatbot Development, Predictive Modeling, Pattern Classification</span>
                     
                     <span className="font-semibold text-slate-900 dark:text-white">Tools & Tech:</span>
-                    <span>Git, GitHub, VS Code, Linux Basics, API Integration</span>
+                    <span>Git, GitHub, VS Code, Linux Basics, API Integration, NumPy, Pandas</span>
                     
                     <span className="font-semibold text-slate-900 dark:text-white">Core Skills:</span>
                     <span>Problem Solving, Logical Thinking, System Automation, Object-Oriented Programming (OOP)</span>
@@ -200,7 +480,7 @@ export default function ResumeModal({ isOpen, onClose }: ResumeModalProps) {
                 <div className="space-y-3 pb-8">
                   <h2 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-wider border-b border-slate-300 dark:border-slate-700 pb-1">Achievements & Extra-Curriculars</h2>
                   <ul className="list-disc list-outside ml-5 space-y-2">
-                    <li><span className="font-bold text-slate-900 dark:text-white">Hackathons & Innovation:</span> Competed actively in high-pressure technical sprints including Hack Arya Verse 2.0, Projectathon, Robo Race, and Robo Soccer Competitions to prototype novel cross-functional architectures.</li>
+                    <li><span className="font-bold text-slate-900 dark:text-white">Hackathons & Innovation:</span> Competed actively in high-pressure technical sprints including Amihack 1.0, Hack Arya Verse 2.0, Projectathon, Robo Race, and Robo Soccer Competitions to prototype novel cross-functional architectures.</li>
                     <li><span className="font-bold text-slate-900 dark:text-white">Open Source Contribution:</span> Authored, tested, and publicly published multiple AI-focused software libraries, custom classification scripts, and hardware configuration repositories on GitHub to support collaborative peer development.</li>
                   </ul>
                 </div>

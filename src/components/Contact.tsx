@@ -10,9 +10,38 @@ const KaggleIcon = () => (
   </svg>
 );
 
+interface SyncedProfile {
+  platform: 'linkedin' | 'twitter' | 'kaggle';
+  name: string;
+  handle: string;
+  avatarUrl: string;
+  profileUrl: string;
+}
+
+const FALLBACK_AVATAR = 'https://github.com/aryanmali021.png';
+
 export default function Contact() {
   const [activeBadge, setActiveBadge] = useState<string | null>(null);
   const [githubData, setGithubData] = useState<any>(null);
+  const [syncedProfiles, setSyncedProfiles] = useState<Record<string, SyncedProfile>>({});
+  const [brokenAvatars, setBrokenAvatars] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const platforms: Array<'linkedin' | 'twitter' | 'kaggle'> = ['linkedin', 'twitter', 'kaggle'];
+    platforms.forEach((platform) => {
+      fetch(`/api/social-profile?platform=${platform}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data: SyncedProfile | null) => {
+          if (data?.platform) {
+            setSyncedProfiles((prev) => ({ ...prev, [data.platform]: data }));
+            setBrokenAvatars((prev) => ({ ...prev, [data.platform]: false }));
+          }
+        })
+        .catch(() => {
+          // Keep default profile fallback when offline or unreachable
+        });
+    });
+  }, []);
 
   useEffect(() => {
     if (activeBadge === 'github' && !githubData) {
@@ -21,14 +50,25 @@ export default function Contact() {
         .then(data => setGithubData(data))
         .catch(console.error);
     }
+    if (activeBadge === 'linkedin' || activeBadge === 'twitter' || activeBadge === 'kaggle') {
+      fetch(`/api/social-profile?platform=${activeBadge}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data: SyncedProfile | null) => {
+          if (data?.platform) {
+            setSyncedProfiles((prev) => ({ ...prev, [data.platform]: data }));
+            setBrokenAvatars((prev) => ({ ...prev, [data.platform]: false }));
+          }
+        })
+        .catch(() => {});
+    }
   }, [activeBadge, githubData]);
 
   const socialLinks = [
     { id: 'email', icon: <Mail />, color: 'bg-red-500', handle: 'aryanmali021@gmail.com', href: 'mailto:aryanmali021@gmail.com', label: 'Send Email' },
-    { id: 'linkedin', icon: <Linkedin />, color: 'bg-[#0077b5]', handle: 'aryan-mali-a14015374', href: 'https://www.linkedin.com/in/aryan-mali-a14015374', label: 'View Profile' },
-    { id: 'github', icon: <Github />, color: 'bg-[#333] dark:bg-slate-800', handle: '@aryanmali021', href: 'https://github.com/aryanmali021', label: 'View Profile' },
-    { id: 'twitter', icon: <Twitter />, color: 'bg-[#1da1f2]', handle: '@Aryanmali021', href: 'https://x.com/Aryanmali021', label: 'View Profile' },
-    { id: 'kaggle', icon: <KaggleIcon />, color: 'bg-[#20BEFF]', handle: 'aryanmali021', href: 'https://www.kaggle.com/aryanmali021', label: 'View Profile' },
+    { id: 'linkedin', icon: <Linkedin />, color: 'bg-[#0077b5]', handle: 'aryan-mali-a14015374', href: 'https://www.linkedin.com/in/aryan-mali-a14015374', label: 'View LinkedIn Profile' },
+    { id: 'github', icon: <Github />, color: 'bg-[#333] dark:bg-slate-800', handle: '@aryanmali021', href: 'https://github.com/aryanmali021', label: 'View GitHub Profile' },
+    { id: 'twitter', icon: <Twitter />, color: 'bg-[#1da1f2]', handle: '@Aryanmali021', href: 'https://x.com/Aryanmali021', label: 'View X Profile' },
+    { id: 'kaggle', icon: <KaggleIcon />, color: 'bg-[#20BEFF]', handle: 'aryanmali021', href: 'https://www.kaggle.com/aryanmali021', label: 'View Kaggle Profile' },
   ];
 
   return (
@@ -63,7 +103,7 @@ export default function Contact() {
              <X size={20} />
            </button>
            
-           {/* Custom Badges for email */}
+           {/* Custom Badge for email */}
            {socialLinks.filter(s => s.id === 'email').map((social) => (
              <div key={social.id} className={`w-[280px] bg-white dark:bg-[#0f1115] border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden shadow-lg mx-auto transition-all ${activeBadge === social.id ? 'block' : 'hidden'}`}>
                <div className={`h-16 w-full ${social.color}`} />
@@ -80,25 +120,41 @@ export default function Contact() {
              </div>
            ))}
 
-           {/* Custom Badges for Twitter and Kaggle */}
-           {socialLinks.filter(s => s.id === 'twitter' || s.id === 'kaggle').map((social) => (
-             <div key={social.id} className={`w-[320px] sm:w-[350px] bg-white dark:bg-[#0f1115] border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden shadow-lg mx-auto transition-all ${activeBadge === social.id ? 'block' : 'hidden'}`}>
-               <div className={`h-20 w-full ${social.color} relative overflow-hidden`}>
-                 <div className="absolute inset-0 opacity-20 bg-[url('https://github.githubassets.com/images/modules/profile/profile-city-bg.svg')] bg-cover bg-center"></div>
-               </div>
-               <div className="relative px-6 pb-6 -mt-10 flex flex-col items-center">
-                 <div className="w-20 h-20 bg-white dark:bg-[#0f1115] rounded-full flex items-center justify-center shadow-md border-4 border-white dark:border-[#0f1115] overflow-hidden">
-                   <img src={social.id === 'twitter' ? "https://unavatar.io/twitter/Aryanmali021" : "https://github.com/aryanmali021.png"} alt="Aryan Mali Profile" className="w-full h-full object-cover" />
+           {/* Unified Auto-Synced Profile Cards for LinkedIn, Twitter (X), and Kaggle */}
+           {socialLinks.filter(s => s.id === 'linkedin' || s.id === 'twitter' || s.id === 'kaggle').map((social) => {
+             const synced = syncedProfiles[social.id];
+             const displayName = synced?.name || 'Aryan Mali';
+             const displayHandle = synced?.handle || social.handle;
+             const profileHref = synced?.profileUrl || social.href;
+             const avatarSrc = brokenAvatars[social.id]
+               ? FALLBACK_AVATAR
+               : synced?.avatarUrl || FALLBACK_AVATAR;
+
+             return (
+               <div key={social.id} className={`w-[320px] sm:w-[350px] bg-white dark:bg-[#0f1115] border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden shadow-lg mx-auto transition-all ${activeBadge === social.id ? 'block' : 'hidden'}`}>
+                 <div className={`h-20 w-full ${social.color} relative overflow-hidden`}>
+                   <div className="absolute inset-0 opacity-20 bg-[url('https://github.githubassets.com/images/modules/profile/profile-city-bg.svg')] bg-cover bg-center"></div>
                  </div>
-                 <h4 className="mt-3 font-bold text-lg text-slate-900 dark:text-white">Aryan Mali</h4>
-                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{social.handle}</p>
-                 <a href={social.href} target="_blank" rel="noreferrer" className={`w-full py-2 flex items-center justify-center gap-2 text-white rounded-lg text-sm font-medium transition-colors hover:brightness-110 ${social.color}`}>
-                   <span className="opacity-90">{social.icon}</span>
-                   {social.label}
-                 </a>
+                 <div className="relative px-6 pb-6 -mt-10 flex flex-col items-center">
+                   <div className="w-20 h-20 bg-white dark:bg-[#0f1115] rounded-full flex items-center justify-center shadow-md border-4 border-white dark:border-[#0f1115] overflow-hidden">
+                     <img
+                       src={avatarSrc}
+                       alt={`${displayName} ${social.id} profile`}
+                       referrerPolicy="no-referrer"
+                       onError={() => setBrokenAvatars((prev) => ({ ...prev, [social.id]: true }))}
+                       className="w-full h-full object-cover"
+                     />
+                   </div>
+                   <h4 className="mt-3 font-bold text-lg text-slate-900 dark:text-white">{displayName}</h4>
+                   <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{displayHandle}</p>
+                   <a href={profileHref} target="_blank" rel="noreferrer" className={`w-full py-2 flex items-center justify-center gap-2 text-white rounded-lg text-sm font-medium transition-colors hover:brightness-110 ${social.color}`}>
+                     <span className="opacity-90">{social.icon}</span>
+                     {social.label}
+                   </a>
+                 </div>
                </div>
-             </div>
-           ))}
+             );
+           })}
 
            {/* GitHub Profile Badge */}
            <div className={`w-[320px] sm:w-[350px] bg-white dark:bg-[#0f1115] border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden shadow-lg mx-auto transition-all ${activeBadge === 'github' ? 'block' : 'hidden'}`}>
@@ -107,7 +163,12 @@ export default function Contact() {
              </div>
              <div className="relative px-6 pb-6 -mt-10 flex flex-col items-center">
                <div className="w-20 h-20 bg-white dark:bg-[#0f1115] rounded-full flex items-center justify-center shadow-md border-4 border-white dark:border-[#0f1115] overflow-hidden">
-                 <img src={githubData?.avatar_url || "https://github.com/aryanmali021.png"} alt="Aryan Mali GitHub" className="w-full h-full object-cover" />
+                 <img
+                   src={githubData?.avatar_url || FALLBACK_AVATAR}
+                   alt="Aryan Mali GitHub"
+                   referrerPolicy="no-referrer"
+                   className="w-full h-full object-cover"
+                 />
                </div>
                <h4 className="mt-3 font-bold text-lg text-slate-900 dark:text-white">{githubData?.name || "Aryan Mali"}</h4>
                <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">@{githubData?.login || "aryanmali021"}</p>
@@ -133,13 +194,6 @@ export default function Contact() {
                  <Github className="w-4 h-4" />
                  View GitHub Profile
                </a>
-             </div>
-           </div>
-
-           {/* Native LinkedIn Badge - Hidden if not active */}
-           <div className={activeBadge === 'linkedin' ? 'block' : 'hidden'}>
-             <div className="badge-base LI-profile-badge" data-locale="en_US" data-size="medium" data-theme="dark" data-type="VERTICAL" data-vanity="aryan-mali-aryanmali021" data-version="v1">
-               <a className="badge-base__link LI-simple-link" href="https://in.linkedin.com/in/aryan-mali-aryanmali021?trk=profile-badge">Aryan Mali</a>
              </div>
            </div>
 
